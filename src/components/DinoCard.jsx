@@ -3,31 +3,70 @@ import { motion, useMotionValue, useTransform, animate } from 'framer-motion';
 
 const SWIPE_THRESHOLD = 120;
 
-const DangerDots = ({ level }) => (
+// Diet label — text only, no emoji
+const dietLabel = (diet) => {
+  if (diet === 'Herbivore') return { text: 'HERBIVORE', color: 'rgba(155,191,164,0.25)', border: 'rgba(155,191,164,0.4)' };
+  if (diet === 'Carnivore') return { text: 'CARNIVORE', color: 'rgba(194,130,130,0.25)', border: 'rgba(194,130,130,0.4)' };
+  return { text: 'PISCIVORE', color: 'rgba(136,180,204,0.25)', border: 'rgba(136,180,204,0.4)' };
+};
+
+// Bone icon SVG — replaces emoji in placeholder
+const BoneIcon = () => (
+  <svg width="48" height="48" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M14 8a6 6 0 0 1 6 6 6 6 0 0 1-2 4.47L28.53 28A6 6 0 0 1 34 26a6 6 0 1 1-4.47 9.93L17.07 23.53A6 6 0 0 1 8 20a6 6 0 0 1 6-12z"
+      stroke="rgba(148,163,184,0.5)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
+    <circle cx="14" cy="14" r="3" fill="rgba(148,163,184,0.3)"/>
+    <circle cx="34" cy="34" r="3" fill="rgba(148,163,184,0.3)"/>
+  </svg>
+);
+
+// Danger bar — subtle steel tones
+const DangerBar = ({ level }) => (
   <div className="flex gap-1 items-center">
     {Array.from({ length: 10 }).map((_, i) => (
       <div
         key={i}
-        className="w-2 h-2 rounded-full transition-all"
+        className="h-1.5 flex-1 rounded-full transition-all"
         style={{
           background: i < level
-            ? `hsl(${120 - (level - 1) * 12}, 85%, 55%)`
-            : 'rgba(255,255,255,0.15)',
-          boxShadow: i < level ? `0 0 4px hsl(${120 - (level - 1) * 12}, 85%, 55%)` : 'none',
+            ? `rgba(${Math.round(194 - i * 10)}, ${Math.round(194 - i * 14)}, ${Math.round(224 - i * 18)}, ${0.4 + i * 0.06})`
+            : 'rgba(255,255,255,0.08)',
         }}
       />
     ))}
   </div>
 );
 
-const StatBadge = ({ label, value, icon }) => (
+const StatBadge = ({ label, value }) => (
   <div
     className="flex flex-col gap-0.5 px-3 py-2 rounded-xl"
-    style={{ background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.1)' }}
+    style={{
+      background: 'rgba(148,163,184,0.05)',
+      border: '1px solid rgba(148,163,184,0.12)',
+    }}
   >
-    <span className="text-xs text-white/50 uppercase tracking-widest font-medium">{icon} {label}</span>
-    <span className="text-sm text-white font-semibold leading-tight">{value}</span>
+    <span className="text-xs uppercase tracking-widest font-semibold" style={{ color: 'rgba(148,163,184,0.5)', fontSize: '9px' }}>{label}</span>
+    <span className="text-sm text-white/80 font-semibold leading-tight">{value}</span>
   </div>
+);
+
+// Inline fossil logo for top-right of card
+const FossilIcon = ({ accentColor }) => (
+  <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
+    <circle cx="14" cy="14" r="13" stroke={accentColor} strokeOpacity="0.4" strokeWidth="1" />
+    <circle cx="14" cy="14" r="4" fill={accentColor} fillOpacity="0.25" />
+    {[0, 60, 120, 180, 240, 300].map((angle, i) => (
+      <line
+        key={i}
+        x1="14" y1="14"
+        x2={14 + 9 * Math.cos((angle * Math.PI) / 180)}
+        y2={14 + 9 * Math.sin((angle * Math.PI) / 180)}
+        stroke={accentColor}
+        strokeOpacity="0.3"
+        strokeWidth="1"
+      />
+    ))}
+  </svg>
 );
 
 export default function DinoCard({ dino, onSwipe, isTop, stackIndex }) {
@@ -35,9 +74,10 @@ export default function DinoCard({ dino, onSwipe, isTop, stackIndex }) {
   const x = useMotionValue(0);
   const y = useMotionValue(0);
   const [isDragging, setIsDragging] = useState(false);
-  const [swipeDir, setSwipeDir] = useState(null); // 'left' | 'right' | null
+  const [swipeDir, setSwipeDir] = useState(null);
   const [factIndex, setFactIndex] = useState(0);
   const [imgLoaded, setImgLoaded] = useState(false);
+  const [imgError, setImgError] = useState(false);
 
   const rotate = useTransform(x, [-300, 0, 300], [-22, 0, 22]);
   const likeOpacity = useTransform(x, [30, 120], [0, 1]);
@@ -49,7 +89,6 @@ export default function DinoCard({ dino, onSwipe, isTop, stackIndex }) {
     setIsDragging(false);
     const velocity = info.velocity.x;
     const offset = info.offset.x;
-
     if (offset > SWIPE_THRESHOLD || velocity > 500) {
       animateOut('right');
     } else if (offset < -SWIPE_THRESHOLD || velocity < -500) {
@@ -64,17 +103,10 @@ export default function DinoCard({ dino, onSwipe, isTop, stackIndex }) {
   const animateOut = (direction) => {
     const targetX = direction === 'right' ? 600 : -600;
     animate(x, targetX, {
-      type: 'spring',
-      stiffness: 200,
-      damping: 20,
+      type: 'spring', stiffness: 200, damping: 20,
       onComplete: () => onSwipe(dino.id, direction),
     });
     animate(y, 80, { type: 'spring', stiffness: 200, damping: 20 });
-  };
-
-  const handleButtonSwipe = (direction) => {
-    if (!isTop) return;
-    animateOut(direction);
   };
 
   const nextFact = () => setFactIndex((i) => (i + 1) % dino.facts.length);
@@ -83,6 +115,7 @@ export default function DinoCard({ dino, onSwipe, isTop, stackIndex }) {
   const stackOffset = stackIndex * 10;
   const stackScale = 1 - stackIndex * 0.04;
   const stackRotate = stackIndex % 2 === 0 ? stackIndex * 2 : -stackIndex * 2;
+  const diet = dietLabel(dino.diet);
 
   return (
     <motion.div
@@ -100,7 +133,7 @@ export default function DinoCard({ dino, onSwipe, isTop, stackIndex }) {
         originX: 0.5,
         originY: 1,
       }}
-      drag={isTop ? true : false}
+      drag={isTop}
       dragConstraints={{ top: -50, bottom: 50, left: -50, right: 50 }}
       dragElastic={0.8}
       onDragStart={() => setIsDragging(true)}
@@ -115,43 +148,54 @@ export default function DinoCard({ dino, onSwipe, isTop, stackIndex }) {
       animate={isTop ? {} : { scale: stackScale, y: stackOffset, rotate: stackRotate }}
       transition={{ type: 'spring', stiffness: 260, damping: 28 }}
     >
-      {/* Main Card */}
+      {/* Main card */}
       <div
-        className="relative w-full rounded-3xl overflow-hidden card-shadow select-none"
+        className="relative w-full rounded-3xl overflow-hidden select-none"
         style={{
-          height: 'min(580px, 82dvh)',
+          height: 'min(570px, 80dvh)',
           background: `linear-gradient(160deg, ${dino.gradientFrom} 0%, ${dino.gradientTo} 100%)`,
+          boxShadow: '0 24px 56px rgba(0,0,0,0.6), 0 0 0 1px rgba(148,163,184,0.07), inset 0 1px 0 rgba(148,163,184,0.12)',
         }}
       >
-        {/* Shimmer overlay */}
+        {/* Shimmer sweep */}
         <div className="absolute inset-0 shimmer pointer-events-none z-10 rounded-3xl" />
 
         {/* Hero image */}
-        <div className="relative h-56 overflow-hidden">
-          {!imgLoaded && (
+        <div className="relative overflow-hidden" style={{ height: '52%' }}>
+          {/* Placeholder shown while loading or on error */}
+          {(!imgLoaded || imgError) && (
             <div
-              className="absolute inset-0 animate-pulse flex items-center justify-center"
-              style={{ background: 'rgba(255,255,255,0.05)' }}
+              className="absolute inset-0 flex items-center justify-center"
+              style={{ background: 'rgba(148,163,184,0.04)' }}
             >
-              <span className="text-6xl">{dino.emoji}</span>
+              <BoneIcon />
+              {!imgError && (
+                <div
+                  className="absolute inset-0 animate-pulse"
+                  style={{ background: 'rgba(148,163,184,0.03)' }}
+                />
+              )}
             </div>
           )}
+
           <img
             src={dino.image}
-            alt={dino.name}
+            alt={`${dino.name} — paleontology photograph`}
             onLoad={() => setImgLoaded(true)}
-            className="w-full h-full object-cover transition-opacity duration-500"
+            onError={() => { setImgLoaded(true); setImgError(true); }}
+            className="w-full h-full object-cover transition-opacity duration-700"
             style={{
-              opacity: imgLoaded ? 1 : 0,
-              filter: 'brightness(0.85) saturate(1.1)',
+              opacity: imgLoaded && !imgError ? 1 : 0,
+              filter: 'brightness(0.82) saturate(0.85) contrast(1.05)',
             }}
             draggable={false}
           />
-          {/* Gradient fade at bottom of image */}
+
+          {/* Bottom fade into card */}
           <div
-            className="absolute inset-x-0 bottom-0 h-24"
+            className="absolute inset-x-0 bottom-0 h-28"
             style={{
-              background: `linear-gradient(to bottom, transparent, ${dino.gradientFrom})`,
+              background: `linear-gradient(to bottom, transparent 0%, ${dino.gradientFrom} 100%)`,
             }}
           />
 
@@ -159,25 +203,29 @@ export default function DinoCard({ dino, onSwipe, isTop, stackIndex }) {
           {isTop && (
             <>
               <motion.div
-                className="absolute top-4 left-4 px-4 py-2 rounded-xl font-black text-white text-xl tracking-wider border-4 stamp-animate"
+                className="absolute top-4 left-4 px-4 py-1.5 rounded-lg font-black text-sm tracking-widest"
                 style={{
                   opacity: likeOpacity,
-                  borderColor: '#22c55e',
-                  background: 'rgba(34,197,94,0.25)',
-                  backdropFilter: 'blur(8px)',
-                  rotate: '-8deg',
+                  color: '#9bbfa4',
+                  border: '1.5px solid rgba(155,191,164,0.6)',
+                  background: 'rgba(155,191,164,0.12)',
+                  backdropFilter: 'blur(12px)',
+                  rotate: '-6deg',
+                  letterSpacing: '0.15em',
                 }}
               >
-                COOL!
+                LIKE
               </motion.div>
               <motion.div
-                className="absolute top-4 right-4 px-4 py-2 rounded-xl font-black text-white text-xl tracking-wider border-4"
+                className="absolute top-4 right-4 px-4 py-1.5 rounded-lg font-black text-sm tracking-widest"
                 style={{
                   opacity: nopeOpacity,
-                  borderColor: '#ef4444',
-                  background: 'rgba(239,68,68,0.25)',
-                  backdropFilter: 'blur(8px)',
-                  rotate: '8deg',
+                  color: '#c29090',
+                  border: '1.5px solid rgba(194,144,144,0.6)',
+                  background: 'rgba(194,144,144,0.12)',
+                  backdropFilter: 'blur(12px)',
+                  rotate: '6deg',
+                  letterSpacing: '0.15em',
                 }}
               >
                 PASS
@@ -185,87 +233,105 @@ export default function DinoCard({ dino, onSwipe, isTop, stackIndex }) {
             </>
           )}
 
-          {/* Diet badge */}
+          {/* Diet badge — text only */}
           <div
-            className="absolute top-4 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full text-xs font-bold text-white uppercase tracking-widest"
+            className="absolute top-4 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-widest"
             style={{
-              background: dino.diet === 'Herbivore'
-                ? 'rgba(34,197,94,0.4)'
-                : dino.diet === 'Carnivore'
-                  ? 'rgba(239,68,68,0.4)'
-                  : 'rgba(59,130,246,0.4)',
+              color: 'rgba(200,215,230,0.8)',
+              background: diet.color,
               backdropFilter: 'blur(8px)',
-              border: '1px solid rgba(255,255,255,0.2)',
+              border: `1px solid ${diet.border}`,
+              fontSize: '10px',
+              letterSpacing: '0.12em',
             }}
           >
-            {dino.diet === 'Herbivore' ? '🌿' : dino.diet === 'Carnivore' ? '🥩' : '🐟'} {dino.diet}
+            {diet.text}
           </div>
         </div>
 
         {/* Card body */}
-        <div className="px-5 pt-3 pb-5 flex flex-col gap-3" style={{ height: 'calc(100% - 224px)' }}>
-          {/* Header */}
-          <div>
-            <div className="flex items-start justify-between gap-2">
-              <div>
-                <h2
-                  className="text-2xl font-black text-white text-shadow leading-tight"
-                  style={{ fontFamily: "'Inter', sans-serif" }}
-                >
-                  {dino.name}
-                </h2>
-                <p className="text-sm font-medium" style={{ color: dino.accentColor }}>
-                  {dino.nickname} &bull; {dino.period}
-                </p>
-              </div>
-              <div
-                className="w-10 h-10 rounded-2xl flex items-center justify-center text-xl flex-shrink-0 mt-0.5"
-                style={{
-                  background: `${dino.glowColor}`,
-                  border: `1px solid ${dino.accentColor}50`,
-                }}
+        <div
+          className="px-4 pt-2 pb-4 flex flex-col gap-2.5"
+          style={{ height: '48%' }}
+        >
+          {/* Name row */}
+          <div className="flex items-start justify-between gap-2">
+            <div className="min-w-0">
+              <h2
+                className="font-black text-white leading-tight truncate"
+                style={{ fontSize: 'clamp(1.1rem, 4vw, 1.4rem)', letterSpacing: '-0.02em' }}
               >
-                {dino.emoji}
-              </div>
+                {dino.name}
+              </h2>
+              <p className="text-xs font-semibold tracking-widest uppercase mt-0.5" style={{ color: dino.accentColor, opacity: 0.8, fontSize: '10px' }}>
+                {dino.nickname}&nbsp;&nbsp;{dino.period}
+              </p>
+            </div>
+            <div className="flex-shrink-0 mt-0.5">
+              <FossilIcon accentColor={dino.accentColor} />
             </div>
           </div>
 
           {/* Stats row */}
-          <div className="grid grid-cols-3 gap-2">
-            <StatBadge label="Length" value={dino.length} icon="📏" />
-            <StatBadge label="Weight" value={dino.weight} icon="⚖️" />
-            <StatBadge label="Region" value={dino.location.split(' ')[0]} icon="🌍" />
+          <div className="grid grid-cols-3 gap-1.5">
+            <StatBadge label="Length" value={dino.length} />
+            <StatBadge label="Weight" value={dino.weight} />
+            <StatBadge label="Region" value={dino.location.split('&')[0].trim()} />
           </div>
 
-          {/* Danger level */}
+          {/* Threat level */}
           <div
-            className="px-3 py-2 rounded-xl flex items-center justify-between gap-2"
-            style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)' }}
-          >
-            <span className="text-xs text-white/50 uppercase tracking-widest font-medium">⚡ Danger</span>
-            <DangerDots level={dino.dangerLevel} />
-          </div>
-
-          {/* Fact card */}
-          <div
-            className="flex-1 rounded-2xl p-3 flex flex-col justify-between relative overflow-hidden"
+            className="px-3 py-2 rounded-xl flex items-center gap-3"
             style={{
-              background: 'rgba(255,255,255,0.07)',
-              border: '1px solid rgba(255,255,255,0.12)',
+              background: 'rgba(148,163,184,0.04)',
+              border: '1px solid rgba(148,163,184,0.09)',
             }}
           >
+            <span
+              className="text-xs font-bold uppercase tracking-widest flex-shrink-0"
+              style={{ color: 'rgba(148,163,184,0.45)', fontSize: '9px', letterSpacing: '0.15em' }}
+            >
+              THREAT
+            </span>
+            <DangerBar level={dino.dangerLevel} />
+            <span
+              className="text-xs font-black flex-shrink-0"
+              style={{ color: dino.accentColor, opacity: 0.7 }}
+            >
+              {dino.dangerLevel}/10
+            </span>
+          </div>
+
+          {/* Fact panel */}
+          <div
+            className="flex-1 rounded-2xl p-3 flex flex-col justify-between relative overflow-hidden min-h-0"
+            style={{
+              background: 'rgba(148,163,184,0.05)',
+              border: '1px solid rgba(148,163,184,0.1)',
+            }}
+          >
+            {/* Subtle accent glow top-right */}
             <div
-              className="absolute inset-0 opacity-30 rounded-2xl"
-              style={{ background: `radial-gradient(circle at top right, ${dino.glowColor}, transparent 70%)` }}
+              className="absolute top-0 right-0 w-24 h-24 rounded-full pointer-events-none"
+              style={{
+                background: `radial-gradient(circle, ${dino.glowColor} 0%, transparent 70%)`,
+                transform: 'translate(30%, -30%)',
+              }}
             />
-            <p className="text-sm text-white/90 leading-relaxed relative z-10 font-medium">
-              <span className="text-lg mr-1">💡</span>
+            <p
+              className="text-xs leading-relaxed relative z-10 line-clamp-3"
+              style={{ color: 'rgba(210,220,235,0.85)', fontWeight: 500 }}
+            >
               {dino.facts[factIndex]}
             </p>
-            <div className="flex items-center justify-between relative z-10 mt-2">
+            {/* Pagination dots */}
+            <div className="flex items-center justify-between relative z-10 mt-1.5">
               <button
                 onClick={(e) => { e.stopPropagation(); prevFact(); }}
-                className="w-7 h-7 rounded-full flex items-center justify-center text-white/60 hover:text-white hover:bg-white/10 transition-all text-sm"
+                className="w-6 h-6 rounded-full flex items-center justify-center transition-all"
+                style={{ color: 'rgba(148,163,184,0.5)', fontSize: '14px' }}
+                onMouseEnter={e => e.currentTarget.style.background = 'rgba(148,163,184,0.1)'}
+                onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
               >
                 ‹
               </button>
@@ -273,17 +339,20 @@ export default function DinoCard({ dino, onSwipe, isTop, stackIndex }) {
                 {dino.facts.map((_, i) => (
                   <div
                     key={i}
-                    className="h-1 rounded-full transition-all duration-300"
+                    className="h-0.5 rounded-full transition-all duration-300"
                     style={{
-                      width: i === factIndex ? '16px' : '4px',
-                      background: i === factIndex ? dino.accentColor : 'rgba(255,255,255,0.25)',
+                      width: i === factIndex ? '14px' : '4px',
+                      background: i === factIndex ? dino.accentColor : 'rgba(148,163,184,0.2)',
                     }}
                   />
                 ))}
               </div>
               <button
                 onClick={(e) => { e.stopPropagation(); nextFact(); }}
-                className="w-7 h-7 rounded-full flex items-center justify-center text-white/60 hover:text-white hover:bg-white/10 transition-all text-sm"
+                className="w-6 h-6 rounded-full flex items-center justify-center transition-all"
+                style={{ color: 'rgba(148,163,184,0.5)', fontSize: '14px' }}
+                onMouseEnter={e => e.currentTarget.style.background = 'rgba(148,163,184,0.1)'}
+                onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
               >
                 ›
               </button>

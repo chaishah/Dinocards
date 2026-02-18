@@ -6,9 +6,21 @@ import ResultScreen from './ResultScreen';
 
 const VISIBLE_CARDS = 3;
 
+// SVG fossils icon for the empty state
+const FossilsIcon = () => (
+  <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
+    <circle cx="24" cy="24" r="22" stroke="rgba(148,163,184,0.2)" strokeWidth="1.5"/>
+    <circle cx="24" cy="20" r="8" stroke="rgba(148,163,184,0.35)" strokeWidth="1.5" fill="none"/>
+    <path d="M16 32v4a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-4" stroke="rgba(148,163,184,0.3)" strokeWidth="1.5" strokeLinecap="round" fill="none"/>
+    <circle cx="20" cy="18" r="2.5" fill="rgba(148,163,184,0.2)"/>
+    <circle cx="28" cy="18" r="2.5" fill="rgba(148,163,184,0.2)"/>
+    <line x1="24" y1="32" x2="24" y2="38" stroke="rgba(148,163,184,0.25)" strokeWidth="1.5" strokeLinecap="round"/>
+  </svg>
+);
+
 export default function CardStack({ dinosaurs }) {
   const [cards, setCards] = useState(dinosaurs);
-  const [history, setHistory] = useState([]); // {id, direction}
+  const [history, setHistory] = useState([]);
   const [swipedDir, setSwipedDir] = useState(null);
   const [showResult, setShowResult] = useState(false);
 
@@ -17,12 +29,10 @@ export default function CardStack({ dinosaurs }) {
     setHistory((h) => [...h, { id, direction }]);
     setCards((prev) => {
       const next = prev.filter((d) => d.id !== id);
-      if (next.length === 0) {
-        setTimeout(() => setShowResult(true), 400);
-      }
+      if (next.length === 0) setTimeout(() => setShowResult(true), 400);
       return next;
     });
-    setTimeout(() => setSwipedDir(null), 600);
+    setTimeout(() => setSwipedDir(null), 500);
   }, []);
 
   const handleUndo = useCallback(() => {
@@ -36,9 +46,7 @@ export default function CardStack({ dinosaurs }) {
 
   const handleButtonSwipe = useCallback((direction) => {
     if (cards.length === 0) return;
-    // Programmatic swipe — trigger on top card
-    const topCard = cards[0];
-    handleSwipe(topCard.id, direction);
+    handleSwipe(cards[0].id, direction);
   }, [cards, handleSwipe]);
 
   const handleRestart = () => {
@@ -58,53 +66,54 @@ export default function CardStack({ dinosaurs }) {
     );
   }
 
+  const explored = dinosaurs.length - cards.length;
+  const likedCount = history.filter((h) => h.direction === 'right').length;
   const visibleCards = cards.slice(0, VISIBLE_CARDS);
 
   return (
-    <div className="flex flex-col items-center gap-6 w-full max-w-sm mx-auto px-4">
-      {/* Progress bar */}
+    <div className="flex flex-col items-center gap-4 w-full max-w-sm mx-auto px-4">
+      {/* Progress row */}
       <div className="w-full">
-        <div className="flex justify-between items-center mb-2">
-          <span className="text-xs text-white/50 font-medium uppercase tracking-widest">
-            {dinosaurs.length - cards.length} / {dinosaurs.length} explored
+        <div className="flex justify-between items-center mb-1.5">
+          <span style={{ fontSize: '10px', color: 'rgba(148,163,184,0.4)', fontWeight: 600, letterSpacing: '0.1em' }}>
+            {explored} / {dinosaurs.length} EXPLORED
           </span>
-          <span className="text-xs font-bold" style={{ color: '#a855f7' }}>
-            {history.filter((h) => h.direction === 'right').length} liked
+          <span style={{ fontSize: '10px', color: 'rgba(155,191,164,0.6)', fontWeight: 700, letterSpacing: '0.1em' }}>
+            {likedCount} LIKED
           </span>
         </div>
         <div
-          className="w-full h-1.5 rounded-full overflow-hidden"
-          style={{ background: 'rgba(255,255,255,0.1)' }}
+          className="w-full rounded-full overflow-hidden"
+          style={{ height: '2px', background: 'rgba(148,163,184,0.08)' }}
         >
           <motion.div
             className="h-full rounded-full"
-            style={{
-              background: 'linear-gradient(to right, #a855f7, #3b82f6)',
-            }}
+            style={{ background: 'linear-gradient(to right, rgba(148,163,184,0.5), rgba(194,207,224,0.8))' }}
             initial={{ width: 0 }}
-            animate={{
-              width: `${((dinosaurs.length - cards.length) / dinosaurs.length) * 100}%`,
-            }}
-            transition={{ type: 'spring', stiffness: 100, damping: 20 }}
+            animate={{ width: `${(explored / dinosaurs.length) * 100}%` }}
+            transition={{ type: 'spring', stiffness: 100, damping: 22 }}
           />
         </div>
       </div>
 
-      {/* Card stack area */}
+      {/* Card stack */}
       <div
         className="relative w-full flex items-center justify-center"
-        style={{ height: 'min(580px, 64dvh)' }}
+        style={{ height: 'min(570px, 62dvh)' }}
       >
         <AnimatePresence mode="sync">
           {visibleCards.length === 0 ? (
             <motion.div
               key="empty"
-              className="flex flex-col items-center justify-center gap-4 text-white/40"
-              initial={{ opacity: 0, scale: 0.8 }}
+              className="flex flex-col items-center justify-center gap-3"
+              initial={{ opacity: 0, scale: 0.85 }}
               animate={{ opacity: 1, scale: 1 }}
+              transition={{ type: 'spring', stiffness: 220, damping: 22 }}
             >
-              <span className="text-6xl">🦕</span>
-              <p className="text-lg font-medium">All caught up!</p>
+              <FossilsIcon />
+              <p style={{ fontSize: '13px', color: 'rgba(148,163,184,0.35)', fontWeight: 600, letterSpacing: '0.08em' }}>
+                ALL SPECIMENS REVIEWED
+              </p>
             </motion.div>
           ) : (
             [...visibleCards].reverse().map((dino, reverseIdx) => {
@@ -122,20 +131,20 @@ export default function CardStack({ dinosaurs }) {
           )}
         </AnimatePresence>
 
-        {/* Swipe feedback flash */}
+        {/* Steel-toned swipe flash */}
         {swipedDir && (
           <div
-            className="absolute inset-0 rounded-3xl pointer-events-none z-20"
+            className="absolute inset-0 pointer-events-none z-20"
             style={{
               background: swipedDir === 'right'
-                ? 'radial-gradient(circle at left, rgba(34,197,94,0.3) 0%, transparent 60%)'
-                : 'radial-gradient(circle at right, rgba(239,68,68,0.3) 0%, transparent 60%)',
+                ? 'radial-gradient(ellipse at 0% 50%, rgba(155,191,164,0.12) 0%, transparent 55%)'
+                : 'radial-gradient(ellipse at 100% 50%, rgba(194,130,130,0.12) 0%, transparent 55%)',
             }}
           />
         )}
       </div>
 
-      {/* Swipe buttons */}
+      {/* Action buttons */}
       <SwipeButtons
         onSwipeLeft={() => handleButtonSwipe('left')}
         onSwipeRight={() => handleButtonSwipe('right')}

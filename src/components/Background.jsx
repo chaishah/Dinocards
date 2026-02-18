@@ -1,33 +1,56 @@
-const particles = [
-  { emoji: '🦕', x: '8%', y: '12%', size: 28, dur: '7s', delay: '0s' },
-  { emoji: '🦖', x: '88%', y: '8%', size: 24, dur: '9s', delay: '1.5s' },
-  { emoji: '🌿', x: '5%', y: '55%', size: 20, dur: '6s', delay: '0.8s' },
-  { emoji: '🌋', x: '92%', y: '60%', size: 22, dur: '8s', delay: '2s' },
-  { emoji: '🦴', x: '15%', y: '85%', size: 18, dur: '7s', delay: '3s' },
-  { emoji: '🥚', x: '80%', y: '88%', size: 20, dur: '5s', delay: '1s' },
-  { emoji: '⚡', x: '50%', y: '5%', size: 16, dur: '6s', delay: '2.5s' },
-  { emoji: '🦷', x: '70%', y: '30%', size: 14, dur: '8s', delay: '0.5s' },
+// Floating geometric particles — no emojis, just subtle shapes
+const dots = [
+  { x: '8%',  y: '12%', size: 3,  dur: '7s',  delay: '0s'   },
+  { x: '88%', y: '8%',  size: 2,  dur: '9s',  delay: '1.5s' },
+  { x: '5%',  y: '55%', size: 4,  dur: '6s',  delay: '0.8s' },
+  { x: '92%', y: '60%', size: 2,  dur: '8s',  delay: '2s'   },
+  { x: '15%', y: '85%', size: 3,  dur: '7s',  delay: '3s'   },
+  { x: '80%', y: '88%', size: 2,  dur: '5s',  delay: '1s'   },
+  { x: '50%', y: '5%',  size: 2,  dur: '6s',  delay: '2.5s' },
+  { x: '70%', y: '30%', size: 3,  dur: '8s',  delay: '0.5s' },
+  { x: '35%', y: '70%', size: 2,  dur: '9s',  delay: '4s'   },
+  { x: '60%', y: '45%', size: 2,  dur: '7s',  delay: '1.2s' },
 ];
 
+// Very subtle, cool-steel orbs
 const orbs = [
-  { color: 'rgba(124,58,237,0.35)', x: '10%', y: '15%', size: 400, dur: '18s', delay: '0s' },
-  { color: 'rgba(37,99,235,0.3)', x: '70%', y: '60%', size: 350, dur: '22s', delay: '3s' },
-  { color: 'rgba(6,182,212,0.2)', x: '40%', y: '75%', size: 300, dur: '16s', delay: '6s' },
-  { color: 'rgba(168,85,247,0.2)', x: '85%', y: '20%', size: 280, dur: '20s', delay: '9s' },
+  { color: 'rgba(148,163,184,0.06)', x: '15%',  y: '20%', size: 440, dur: '22s', delay: '0s'  },
+  { color: 'rgba(100,116,139,0.05)', x: '75%',  y: '65%', size: 380, dur: '28s', delay: '4s'  },
+  { color: 'rgba(71, 85,105,0.07)',  x: '45%',  y: '78%', size: 320, dur: '18s', delay: '8s'  },
+  { color: 'rgba(51, 65, 85,0.08)', x: '88%',  y: '25%', size: 300, dur: '24s', delay: '12s' },
 ];
+
+// Small geometric cross/line shape as SVG
+const CrossShape = ({ size }) => (
+  <svg width={size * 3} height={size * 3} viewBox="0 0 12 12" fill="none">
+    <line x1="6" y1="0" x2="6" y2="12" stroke="rgba(148,163,184,0.3)" strokeWidth="1" />
+    <line x1="0" y1="6" x2="12" y2="6" stroke="rgba(148,163,184,0.3)" strokeWidth="1" />
+  </svg>
+);
+
+const DiamondShape = ({ size }) => (
+  <svg width={size * 4} height={size * 4} viewBox="0 0 16 16" fill="none">
+    <rect
+      x="4" y="4" width="8" height="8"
+      transform="rotate(45 8 8)"
+      stroke="rgba(148,163,184,0.2)"
+      strokeWidth="1"
+    />
+  </svg>
+);
 
 export default function Background() {
   return (
     <div className="fixed inset-0 overflow-hidden pointer-events-none" style={{ zIndex: 0 }}>
-      {/* Base gradient */}
+      {/* Base gradient — deep steel charcoal */}
       <div
         className="absolute inset-0"
         style={{
-          background: 'linear-gradient(135deg, #0f0720 0%, #0a1628 40%, #0d1f18 70%, #0a0f1e 100%)',
+          background: 'linear-gradient(145deg, #090c12 0%, #0d1117 45%, #0a0e16 75%, #080b10 100%)',
         }}
       />
 
-      {/* Animated orbs */}
+      {/* Subtle steel orbs */}
       {orbs.map((orb, i) => (
         <div
           key={i}
@@ -37,60 +60,69 @@ export default function Background() {
             top: orb.y,
             width: orb.size,
             height: orb.size,
-            background: `radial-gradient(circle, ${orb.color} 0%, transparent 70%)`,
+            background: `radial-gradient(circle, ${orb.color} 0%, transparent 65%)`,
             transform: 'translate(-50%, -50%)',
             '--dur': orb.dur,
             '--delay': orb.delay,
-            filter: 'blur(1px)',
+            filter: 'blur(2px)',
           }}
         />
       ))}
 
-      {/* Noise texture overlay */}
+      {/* Fine dot grid */}
       <div
-        className="absolute inset-0 opacity-5"
+        className="absolute inset-0"
         style={{
-          backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='1'/%3E%3C/svg%3E")`,
-          backgroundRepeat: 'repeat',
-          backgroundSize: '256px 256px',
+          backgroundImage: 'radial-gradient(circle, rgba(148,163,184,0.08) 1px, transparent 1px)',
+          backgroundSize: '40px 40px',
+          opacity: 0.8,
         }}
       />
 
-      {/* Grid pattern */}
+      {/* Horizontal scan lines — very subtle */}
       <div
-        className="absolute inset-0 opacity-5"
+        className="absolute inset-0 opacity-3"
         style={{
-          backgroundImage: `
-            linear-gradient(rgba(255,255,255,0.3) 1px, transparent 1px),
-            linear-gradient(90deg, rgba(255,255,255,0.3) 1px, transparent 1px)
-          `,
-          backgroundSize: '60px 60px',
+          backgroundImage: 'repeating-linear-gradient(0deg, transparent, transparent 3px, rgba(148,163,184,0.015) 3px, rgba(148,163,184,0.015) 4px)',
         }}
       />
 
-      {/* Floating emoji particles */}
-      {particles.map((p, i) => (
+      {/* Floating geometric dot particles */}
+      {dots.map((p, i) => (
         <div
           key={i}
-          className="absolute float-particle select-none"
+          className="absolute float-particle"
           style={{
             left: p.x,
             top: p.y,
-            fontSize: p.size,
             '--dur': p.dur,
             '--delay': p.delay,
-            opacity: 0.4,
-            filter: 'blur(0.5px)',
           }}
         >
-          {p.emoji}
+          {i % 3 === 0 ? (
+            <CrossShape size={p.size} />
+          ) : i % 3 === 1 ? (
+            <DiamondShape size={p.size} />
+          ) : (
+            <div
+              className="rounded-full"
+              style={{
+                width: p.size * 2,
+                height: p.size * 2,
+                background: 'rgba(148,163,184,0.25)',
+                boxShadow: '0 0 6px rgba(148,163,184,0.15)',
+              }}
+            />
+          )}
         </div>
       ))}
 
-      {/* Bottom gradient vignette */}
+      {/* Corner vignette */}
       <div
-        className="absolute inset-x-0 bottom-0 h-40"
-        style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.3), transparent)' }}
+        className="absolute inset-0"
+        style={{
+          background: 'radial-gradient(ellipse at 50% 50%, transparent 50%, rgba(0,0,0,0.35) 100%)',
+        }}
       />
     </div>
   );

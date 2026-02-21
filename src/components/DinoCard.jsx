@@ -7,6 +7,7 @@ const SWIPE_THRESHOLD = 120;
 const dietLabel = (diet) => {
   if (diet === 'Herbivore') return { text: 'HERBIVORE', color: 'rgba(155,191,164,0.25)', border: 'rgba(155,191,164,0.4)' };
   if (diet === 'Carnivore') return { text: 'CARNIVORE', color: 'rgba(194,130,130,0.25)', border: 'rgba(194,130,130,0.4)' };
+  if (diet === 'Omnivore') return { text: 'OMNIVORE', color: 'rgba(200,176,120,0.25)', border: 'rgba(200,176,120,0.4)' };
   return { text: 'PISCIVORE', color: 'rgba(136,180,204,0.25)', border: 'rgba(136,180,204,0.4)' };
 };
 

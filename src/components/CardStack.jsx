@@ -4,7 +4,11 @@ import DinoCard from './DinoCard';
 import SwipeButtons from './SwipeButtons';
 import ResultScreen from './ResultScreen';
 
+const DECK_SIZE = 7;
 const VISIBLE_CARDS = 3;
+
+const getRandomDeck = (dinosaurs) =>
+  [...dinosaurs].sort(() => Math.random() - 0.5).slice(0, DECK_SIZE);
 
 // SVG fossils icon for the empty state
 const FossilsIcon = () => (
@@ -19,30 +23,30 @@ const FossilsIcon = () => (
 );
 
 export default function CardStack({ dinosaurs }) {
-  const [cards, setCards] = useState(dinosaurs);
+  const [deck, setDeck] = useState(() => getRandomDeck(dinosaurs));
+  const [cards, setCards] = useState(() => deck);
   const [history, setHistory] = useState([]);
   const [swipedDir, setSwipedDir] = useState(null);
   const [showResult, setShowResult] = useState(false);
 
   const handleSwipe = useCallback((id, direction) => {
     setSwipedDir(direction);
-    setHistory((h) => [...h, { id, direction }]);
-    setCards((prev) => {
-      const next = prev.filter((d) => d.id !== id);
+    const dino = deck.find(d => d.id === id);
+    setHistory(h => [...h, { dino, direction }]);
+    setCards(prev => {
+      const next = prev.filter(d => d.id !== id);
       if (next.length === 0) setTimeout(() => setShowResult(true), 400);
       return next;
     });
     setTimeout(() => setSwipedDir(null), 500);
-  }, []);
+  }, [deck]);
 
   const handleUndo = useCallback(() => {
     if (history.length === 0) return;
     const last = history[history.length - 1];
-    const dino = dinosaurs.find((d) => d.id === last.id);
-    if (!dino) return;
-    setHistory((h) => h.slice(0, -1));
-    setCards((prev) => [dino, ...prev]);
-  }, [history, dinosaurs]);
+    setHistory(h => h.slice(0, -1));
+    setCards(prev => [last.dino, ...prev]);
+  }, [history]);
 
   const handleButtonSwipe = useCallback((direction) => {
     if (cards.length === 0) return;
@@ -50,24 +54,27 @@ export default function CardStack({ dinosaurs }) {
   }, [cards, handleSwipe]);
 
   const handleRestart = () => {
-    setCards(dinosaurs);
+    const newDeck = getRandomDeck(dinosaurs);
+    setDeck(newDeck);
+    setCards(newDeck);
     setHistory([]);
     setSwipedDir(null);
     setShowResult(false);
   };
 
+  const likedDinos = history.filter(h => h.direction === 'right').map(h => h.dino);
+
   if (showResult) {
     return (
       <ResultScreen
-        total={dinosaurs.length}
-        liked={history.filter((h) => h.direction === 'right').length}
+        likedDinos={likedDinos}
+        total={DECK_SIZE}
         onRestart={handleRestart}
       />
     );
   }
 
-  const explored = dinosaurs.length - cards.length;
-  const likedCount = history.filter((h) => h.direction === 'right').length;
+  const explored = deck.length - cards.length;
   const visibleCards = cards.slice(0, VISIBLE_CARDS);
 
   return (
@@ -76,10 +83,10 @@ export default function CardStack({ dinosaurs }) {
       <div className="w-full">
         <div className="flex justify-between items-center mb-1.5">
           <span style={{ fontSize: '10px', color: 'rgba(148,163,184,0.4)', fontWeight: 600, letterSpacing: '0.1em' }}>
-            {explored} / {dinosaurs.length} EXPLORED
+            {explored} / {DECK_SIZE} SWIPED
           </span>
           <span style={{ fontSize: '10px', color: 'rgba(155,191,164,0.6)', fontWeight: 700, letterSpacing: '0.1em' }}>
-            {likedCount} LIKED
+            {likedDinos.length} LIKED
           </span>
         </div>
         <div
@@ -90,7 +97,7 @@ export default function CardStack({ dinosaurs }) {
             className="h-full rounded-full"
             style={{ background: 'linear-gradient(to right, rgba(148,163,184,0.5), rgba(194,207,224,0.8))' }}
             initial={{ width: 0 }}
-            animate={{ width: `${(explored / dinosaurs.length) * 100}%` }}
+            animate={{ width: `${(explored / DECK_SIZE) * 100}%` }}
             transition={{ type: 'spring', stiffness: 100, damping: 22 }}
           />
         </div>
